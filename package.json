@@ -1,0 +1,17 @@
+{
+  "name": "deckbuffer",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "beamcoder": "^0.6.10",
+    "johnny-five": "^2.0.0",
+    "macadam": "git://github.com/rezonant/macadam.git#feat/color-conversion",
+    "ws": "^7.4.0"
+  }
+}

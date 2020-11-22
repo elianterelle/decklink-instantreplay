@@ -1,0 +1,123 @@
+<html>
+    <head>
+        <button onclick="sendAction('setSlowmotion', 0)">Speed 1</button>
+        <button onclick="sendAction('setSlowmotion', 1)">Speed 0.75</button>
+        <button onclick="sendAction('setSlowmotion', 2)">Speed 0.5</button>
+        <button onclick="sendAction('setSlowmotion', 3)">Speed 0</button>
+        <br>
+        <br>
+        <button onmousedown="backwardDown()" onmouseup="forwardBackwardUp()" id="backward">Zurück</button>
+        <button onmousedown="forwardDown()" onmouseup="forwardBackwardUp()" id="forward">Vor</button>
+        <br>
+        <br>
+        <button onclick="sendAction('setPlaybackInput', 0)">Kamera 0</button>
+        <button onclick="sendAction('setPlaybackInput', 1)">Kamera 1</button>
+
+        <style>
+            .circle {
+                background:  #555;
+                height: 100px;
+                width: 100px;
+                overflow: hidden;
+                border-radius: 50px;
+                position: relative;
+            }
+
+            .circle:after {
+                content: ' ';
+                position: absolute;
+                display: block;
+                top: 20px;
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+                border-radius: 30px;
+                background: white;
+            }
+
+            .circle .pointer {
+                height: 10px;
+                position: absolute;
+                top: 45px;
+                left: 25px;
+                right: 25px;
+            }
+
+            #playbackPointer {
+                background: green;
+            }
+
+            #capturePointer {
+                background: red;
+            }
+        </style>
+
+        <div class="circle">
+            <div class="pointer" id="playbackPointer"></div>
+            <div class="pointer" id="capturePointer"></div>
+        </div>
+    </head>
+
+    <body>
+        <script>            
+            function openWebsocket() {
+                console.log('Connecting Websocket...');
+                ws = new WebSocket('ws://localhost:9090');
+
+                ws.onopen = () => {
+                    console.log('Connected!')
+                };
+
+                ws.onmessage = message => {
+                    console.log('Received Message', message);
+                    
+                    const { type, data } = JSON.parse(message.data);
+
+                    switch (type) {
+                      case 'pointers':
+                        drawPointers(data.capture, data.playback, data.buffersize);
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log('Websocket closed. Attempting to reconnect in 5 seconds')
+                    setTimeout(() => this.openWebsocket(), 5000);
+                };
+            }
+
+            let interval = null;
+
+            async function backwardDown() {
+                interval = setInterval(() => {
+                    sendAction('changePlaybackPointer', -10);
+                }, 50)
+            }
+
+            async function forwardDown() {
+                interval = setInterval(() => {
+                    sendAction('changePlaybackPointer', 10);
+                }, 50)
+            }
+
+            async function forwardBackwardUp() {
+                clearInterval(interval);
+            }
+
+            function drawPointers(capture, playback, buffersize) {
+                const captureDegrees = (capture/buffersize)*360;
+                const playbackDegrees = (playback/buffersize)*360;
+                document.getElementById('capturePointer').style.transform = `rotate(${captureDegrees}deg) translateX(25px)`;
+                document.getElementById('playbackPointer').style.transform = `rotate(${playbackDegrees}deg) translateX(25px)`;
+            }
+
+            function sendAction(action, data) {
+                ws.send(JSON.stringify({
+                    action,
+                    data
+                }));
+            }
+
+            openWebsocket();
+        </script>
+    </body>
+</html>
