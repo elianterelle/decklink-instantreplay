@@ -1,0 +1,16 @@
+{
+  "name": "coreserver",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "atem-connection": "^2.1.0",
+    "casparcg-connection": "^5.1.0",
+    "ws": "^7.4.0"
+  }
+}

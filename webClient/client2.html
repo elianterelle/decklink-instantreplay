@@ -1,0 +1,320 @@
+<html>
+    <head>
+        <style>
+            :root {
+                --background: #121212;
+                --success: #28b528;
+                --failure: #b52828;
+            }
+
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                background: var(--background);
+                font-family: Arial, Helvetica, sans-serif;
+                display: flex;
+                flex-direction: column;
+                height: 100%;
+                color: #fff;
+            }
+
+            #wsstate {
+                padding: 0.6em 1em;
+                background: var(--failure);
+                float: right;
+                color: white;
+                margin-left: auto;
+            }
+
+            #wsstate.connected {
+                background: var(--success);
+            }
+
+            .header {
+                display: flex;
+                border-bottom: 1px solid #262626;
+            }
+
+            .modules {
+                display: flex;
+                flex: 1;
+                overflow-x: scroll;
+            }
+
+            .modules > div {
+                padding: 2em;
+                flex: 1;
+                border: 1px solid #262626;
+                max-width: 40vh;
+                min-width: 25vh;
+            }
+
+            .modules .capture.active {
+                border: 1px solid var(--success);
+            }
+
+            .modules .playback.active {
+                border: 1px solid var(--failure);
+            }
+
+
+
+            .recordgraph {
+                background:  #555;
+                width: 100%;
+                padding-bottom: 100%;
+                overflow: hidden;
+                border-radius: 50%;
+                position: relative;
+            }
+
+            .recordgraph:after {
+                content: ' ';
+                position: absolute;
+                display: block;
+                top: 20px;
+                bottom: 20px;
+                right: 20px;
+                left: 20px;
+                border-radius: 50%;
+                background: var(--background);
+            }
+
+            .recordgraph .pointer {
+                height: 10px;
+                position: absolute;
+                top: calc(50% - 5px);
+                left: 0px;
+                right: 50%;
+            }
+
+            .playbackPointer {
+                background: green;
+            }
+
+            .capturePointer {
+                background: red;
+            }
+
+            .playback {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .playback .controls {
+                display: flex;
+                flex: 1;
+            }
+
+            .playback .controls .slider {
+                width: 2em;
+                background: #ddd;
+            }
+
+            .playback .info {
+                font-size: 3em;
+            }
+
+            .playback .info #playbackSpeed, .playback .info #playbackPosition {
+                float: right;
+            }
+
+
+        </style>
+    </head>
+
+    <body>
+        <div class="header">
+            <div id="wsstate">Disconnected</div>
+        </div>
+
+        <div class="modules">
+            <div class="playback">
+                <div class="info">Speed: <span id="playbackSpeed">0.5</span></div>
+                <div class="info">Position: <span id="playbackPosition">-1 Sek</span></div>
+                <div class="info">Pausiert: <span id="playbackPaused">Nein</span></div>
+
+                <div class="controls">
+                    <!--<div class="slider"><div id="speedSliderPointer"></div></div>-->
+                    
+                </div>
+
+                <div style="display: flex;">
+                    <button onmousedown="backwardDown()" onmouseup="forwardBackwardUp()"><br>&lt;--<br></button>
+                    <button onmousedown="forwardDown()" onmouseup="forwardBackwardUp()"><br>--&gt;<br></button>
+                </div>
+            </div>
+
+            <div class="capture" id="capture0frame">
+                <div class="label" id="capture0label"></div>
+                <div class="recordgraph">
+                    <div class="pointer playbackPointer" id="capture0playback"></div>
+                    <div class="pointer capturePointer" id="capture0capture"></div>
+                </div>
+            </div>
+
+            <div class="capture" id="capture1frame">
+                <div class="label" id="capture1label"></div>
+                <div class="recordgraph">
+                    <div class="pointer playbackPointer" id="capture1playback"></div>
+                    <div class="pointer capturePointer" id="capture1capture"></div>
+                </div>
+            </div>
+        </div>
+    </body>
+
+    <script>
+        const elements = {
+            wsstate: document.getElementById('wsstate'),
+            speed: document.getElementById('plabackSpeed'),
+            position: document.getElementById('plabackPosition'),
+            paused: document.getElementById('playbackPaused'),
+            capturePointers: [
+                document.getElementById('capture0capture'),
+                document.getElementById('capture1capture')
+            ],
+            playbackPointers: [
+                document.getElementById('capture0playback'),
+                document.getElementById('capture1playback')
+            ],
+            captureFrames: [
+                document.getElementById('capture0frame'),
+                document.getElementById('capture1frame')
+            ],
+            captureLabels: [
+                document.getElementById('capture0label'),
+                document.getElementById('capture1label')
+            ]
+        };
+
+        function openWebsocket() {
+            console.log('Connecting Websocket...');
+            ws = new WebSocket('ws://localhost:9000');
+
+            ws.onopen = () => {
+                wsstate = document.getElementById('wsstate');
+                wsstate.innerText = 'Connected';
+                wsstate.classList.add('connected');
+                console.log('Connected!')
+            };
+
+            ws.onmessage = message => {
+                console.log('Received Message', message);
+                
+                const { type, data } = JSON.parse(message.data);
+
+                switch (type) {
+                    case 'state':
+                    drawPointers(data.capture, data.playback, data.buffersize);
+                }
+            };
+
+            ws.onclose = () => {
+                wsstate = document.getElementById('wsstate');
+                wsstate.innerText = 'Disconnected';
+                wsstate.classList.remove('connected');
+                console.log('Websocket closed. Attempting to reconnect in 1 second')
+                setTimeout(() => this.openWebsocket(), 1000);
+            };
+        }
+
+        function applyState(state, change='*') {
+            const bufferSize = state.replay.pointers.bufferSize;
+
+            state.replay.pointers.captures.forEach((value, index) => {
+                elements.capturePointers[index].style.transform = `rotate(${value/bufferSize*360}deg) translateX(25px)`;
+            });
+
+            const playbackPosition = state.replay.pointers.playback;
+
+            elements.playbackPointers.forEach((element) => {
+                element.style.transform = `rotate(${playbackPosition/bufferSize*360}deg) translateX(25px)`;
+            });
+
+            const capturePosition = state.replay.pointers.captures[state.replay.state.input];
+            let distance = capturePosition - playbackPosition;
+
+            if (distance < 0) {
+                distance = capturePosition - (playbackPosition - bufferSize);
+            }
+
+            const seconds = Math.round((distance / state.settings.fps) * 100) / 100;
+            elements.position.innerText = `${seconds} Sekunden`;
+            
+            if (change == 'replay.pointers') {
+                return;
+            }
+
+            if (isAffected(change, 'replay')) {
+                const speed = [
+                    '1x', '0.75x', '0.5x', '0.25x'
+                ][state.replay.state.slowmotion];
+
+                elements.speed.innerText = speed;
+                elements.paused.innerText = state.replay.state.paused ? 'Ja' : 'Nein';
+
+                elements.captureFrames.forEach((frame, index) => {
+                    if (state.replay.state.input == index) {
+                        frame.classList.add('active');
+                    } else {
+                        frame.classList.remove('active');
+                    }
+                });
+            }
+
+            if (isAffected(change, 'settings')) {
+                elements.captureLabels.forEach((label, index) => {
+                    label.innerText = state.settings.labels.inputs[index];
+                });
+            }
+        }
+
+        function isAffected(change, check) {
+            if (change == '*' || change == check) {
+                return true;
+            }
+
+            const changeParts = change.split('.');
+            const checkParts = check.split('.');
+
+            for (let i = 0; i < min(changeParts.length, checkParts.length); i++) {
+                if (changeParts[i] != checkParts[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        let interval = null;
+
+        async function backwardDown() {
+            interval = setInterval(() => {
+                sendAction('changePlaybackPointer', -10);
+            }, 50)
+        }
+
+        async function forwardDown() {
+            interval = setInterval(() => {
+                sendAction('changePlaybackPointer', 10);
+            }, 50)
+        }
+
+        async function forwardBackwardUp() {
+            clearInterval(interval);
+        }
+
+        function sendAction(action, data) {
+            ws.send(JSON.stringify({
+                action,
+                data
+            }));
+        }
+
+        openWebsocket();
+    </script>
+</html>
