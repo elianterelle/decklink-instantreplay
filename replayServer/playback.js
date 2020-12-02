@@ -1,4 +1,4 @@
-const config = require('./config');
+const config = require('../config');
 const macadam = require('macadam');
 
 class Playback {
@@ -27,11 +27,11 @@ class Playback {
     }
 
     async nextFrame() {
-        if (!playback) {
+        if (!this.playback) {
             return;
         }
 
-        const capture = this.captures[playbackInput];
+        const capture = this.captures[this.playbackInput];
         let slowmoOffset = [
             [0, 0, 0, 0, 0, 0, 0, 0],
             [0, 0, 0, 1, 0, 0, 0, 1],
@@ -48,13 +48,19 @@ class Playback {
         let frame = capture.frameBuffer[index];
 
         if (!frame) {
+            console.log('Missing Frame!')
             frame = new Uint8ClampedArray(1080*1920*2);
         }
 
         await this.playback.displayFrame(frame);
-        if (!this.playbackPause) {
-            this.playbackPointer = (this.playbackPointer + 1) % bufferSize;
+
+        if (this.playbackPause) {
+            this.playbackOffset++;
         }
+
+        this.playbackPointer = (this.playbackPointer + 1) % config.bufferSize;
+
+        console.log(this.playbackPointer);
         this.playbackIndex++;
     }
 

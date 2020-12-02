@@ -1,0 +1,20 @@
+PID 3148 received SIGSEGV for address: 0xa4d8b2bc
+SymInit: Symbol-SearchPath: '.;C:\Users\User\Desktop\deckbufferV2\replayServer;C:\Program Files\nodejs;C:\Windows;C:\Windows\system32;SRV*C:\websymbols*http://msdl.microsoft.com/download/symbols;', symOptions: 530, UserName: 'User'
+OS-Version: 10.0.19041 () 0x100-0x1
+c:\users\user\desktop\deckbufferv2\replayserver\node_modules\segfault-handler\src\stackwalker.cpp (924): StackWalker::ShowCallstack
+c:\users\user\desktop\deckbufferv2\replayserver\node_modules\segfault-handler\src\segfault-handler.cpp (242): segfault_handler
+00007FFD694A81CC (ntdll): (filename not available): RtlDeleteAce
+00007FFD6947B296 (ntdll): (filename not available): RtlRaiseException
+00007FFD694CFC2E (ntdll): (filename not available): KiUserExceptionDispatcher
+00007FF7A4D8B2BC (node): (filename not available): uv_loop_size
+00007FF7A4F79820 (node): (filename not available): uv_timer_stop
+00007FF7A4F798F7 (node): (filename not available): uv_timer_stop
+00007FF7A4F7612B (node): (filename not available): uv_async_send
+00007FF7A4F758BC (node): (filename not available): uv_loop_init
+00007FF7A4F75A5A (node): (filename not available): uv_run
+00007FF7A4E80495 (node): (filename not available): v8::internal::OrderedHashTable<v8::internal::OrderedHashSet,1>::NumberOfBucketsOffset
+00007FF7A4EF51C7 (node): (filename not available): node::Start
+00007FF7A4D567CC (node): (filename not available): RC4_options
+00007FF7A5CFB1EC (node): (filename not available): v8::internal::compiler::RepresentationChanger::Uint32OverflowOperatorFor
+00007FFD67F37034 (KERNEL32): (filename not available): BaseThreadInitThunk
+00007FFD6947CEC1 (ntdll): (filename not available): RtlUserThreadStart

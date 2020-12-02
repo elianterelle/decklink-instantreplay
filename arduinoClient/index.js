@@ -11,31 +11,31 @@ port.on("open", () => {
 
 let lastEncoderValue = 0;
 let lastSliderValue = 0;
-let lastButtonValue = 0;
+let lastButtonValues = [];
 
 function init() {
     parser.on('data', data =>{
-        const [buttonValueRaw, encoderValueRaw, sliderValueRaw] = data.split(',');
-
-        const buttonValue = buttonValueRaw == 1;
-        let encoderValue = parseInt(encoderValueRaw);
-        let sliderValue = parseInt(sliderValueRaw);
+        const values = data.split(',');
+        const [encoderValueRaw, sliderValueRaw] = values.slice(5);
+        const buttonValues = values.slice(0, 4).map(value => value == 1);
+        let encoderValue = parseInt(encoderValueRaw)*(-1);
+        let sliderValue = parseInt(sliderValueRaw.replace('\r', ''));
 
         if (encoderValue >= -1 && encoderValue <= 1) {
             encoderValue = 0;
         }
 
-        if (lastEncoderValue !== encoderValue && buttonValue) {
-            sendAction('changePlaybackPointer', Math.ceil(encoderValue/3));
+        if (lastEncoderValue !== encoderValue && buttonValues[0]) {
+            sendAction('changePlaybackOffset', Math.ceil(encoderValue/5));
         }
 
         if (lastSliderValue !== sliderValue) {
             let slowmotion = 0;
 
-            if (sliderValue <= 75) {
+            if (sliderValue <= 85) {
                 if (sliderValue > 50) {
                     slowmotion = 1;
-                } else if (sliderValue > 25) {
+                } else if (sliderValue > 10) {
                     slowmotion = 2;
                 } else {
                     slowmotion = 3;
@@ -44,13 +44,29 @@ function init() {
             sendAction('setSlowmotion', slowmotion);
         }
 
-        if (lastButtonValue !== buttonValue) {
-            sendAction(buttonValue ? 'pausePlayback' : 'resumePlayback');
+        // Pause
+        if (lastButtonValues[0] !== buttonValues[0]) {
+            sendAction('setPause', buttonValues[0]);
+        }
+
+        // Prepare (Set Preview)
+        if (lastButtonValues[1] !== buttonValues[1] && buttonValues[1]) {
+            sendAction('prepareReplay', buttonValues[1]);
+        }
+
+        // Cut with Stinger
+        if (lastButtonValues[2] !== buttonValues[2] && buttonValues[2]) {
+            sendAction('cutWithStinger', buttonValues[2]);
+        }
+
+        // Reset
+        if (lastButtonValues[3] !== buttonValues[3] && buttonValues[3]) {
+            sendAction('resetReplay', buttonValues[3]);
         }
 
         lastEncoderValue = encoderValue;
         lastSliderValue = sliderValue;
-        lastButtonValue = buttonValue;
+        lastButtonValues = buttonValues;
     });
 }
 
@@ -61,18 +77,36 @@ function init() {
 // Arduino
 /////////////////
 
-const ws = new WebSocket('ws://localhost:9090');
- 
-ws.on('open', function open() {
-    init();
-});
- 
-ws.on('message', function incoming(data) {});
+let ws = null;
+
+function connect() {
+    ws = new WebSocket('ws://localhost:9000');
+    ws.on('open', () => {
+        init();
+    });
+    
+    ws.on('message', () => {});
+
+    ws.on('error', () => {});
+
+    ws.on('close', () => {
+        console.log('Lost connection to Core Server, reconnecting in 1 Second')
+        setTimeout(() => {
+            connect();
+        }, 1000);
+    });
+}
 
 function sendAction(action, data) {
+    if (!ws) {
+        return;
+    }
+
     console.log(action, data);
     ws.send(JSON.stringify({
         action,
         data
     }));
 }
+
+connect();

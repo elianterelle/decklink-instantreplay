@@ -1,8 +1,8 @@
-const config = require('./config');
+const config = require('../config');
 const macadam = require('macadam');
 
 class Capture {
-    frameBuffer = new Array(bufferSize);
+    frameBuffer = new Array(config.bufferSize);
     frameBufferPointer = 0;
     capture;
     frameCallback = () => {};

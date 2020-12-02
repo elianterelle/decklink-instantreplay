@@ -6,6 +6,12 @@
 
 const WebSocket = require('ws');
 const { CasparCG } = require("casparcg-connection");
+const { Atem } = require('atem-connection');
+
+
+let casparCG = null;
+let replayWs = null;
+const atem = new Atem();
 
 let state = {};
 
@@ -21,7 +27,8 @@ function setState() {
                 captures: [],
                 playback: {
                     offset: 0,
-                    pointer: 0
+                    pointer: 0,
+                    position: 0
                 },
                 bufferSize: 0
             }
@@ -36,11 +43,14 @@ function setState() {
                 inputs: ['Kamera 1', 'Kamera 2']
             },
             fps: 50,
+            stingerFile: 'stinger',
+            replayAtemInput: 2,
             inputs: [true, true]
         },
         connections: {
             replay: false,
-            casparCG: false
+            casparCG: false,
+            atem: false
         }
     };
 }
@@ -105,7 +115,8 @@ wss.on('connection', ws => {
                 break;
 
             case 'setPause':
-                state.replay.pause = data;
+                state.replay.state.pause = data;
+                console.log(state);
                 sendReplayState();
                 sendState('replay.state.pause');
                 break;
@@ -116,8 +127,24 @@ wss.on('connection', ws => {
                 sendState('replay.state.input');
                 break;
 
-            case 'changeOffset':
+            case 'changePlaybackOffset':
                 sendReplayAction('changePlaybackOffset', data);
+                break;
+
+            case 'cutWithStinger':
+                casparCG.play(1, 20, 'stinger').then((data) => {
+                    setTimeout(() => {
+                        atem.cut();
+                    }, 500);
+                });
+                break;
+
+            case 'prepareReplay':
+                atem.changePreviewInput(state.settings.replayAtemInput);
+                break;
+            
+            case 'resetReplay':
+                sendReplayAction('resetPlaybackOffset');
                 break;
         }
     });
@@ -134,6 +161,7 @@ function sendToAll(data) {
 function sendState(change = '*') {
     sendToAll({
         type: 'state',
+        state,
         change
     });
 }
@@ -144,8 +172,6 @@ function sendState(change = '*') {
 ///// Websocket Client (ReplayServer) /////
 ///////////////////////////////////////////
 
-let replayWs = null;
-
 function connectReplay() {
     console.log('Connecting to Replay Server...')
 
@@ -154,18 +180,20 @@ function connectReplay() {
     replayWs.on('open', () => {
         console.log('Connected to Replay Server!')
         state.connections.replay = true;
-        sendState(['connection']);
+        sendState('connection');
     });
 
     replayWs.on('close', () => {
         state.connections.replay = false;
-        sendState(['connection']);
+        sendState('connection');
 
         console.log('Lost connection to Replay Server, reconnecting in 1 Second')
         setTimeout(() => {
             connectReplay();
         }, 1000);
     });
+
+    replayWs.on('error', () => {});
 
     replayWs.on('message', (json) => {
         const { type, data } = JSON.parse(json);
@@ -184,7 +212,7 @@ function connectReplay() {
     });
 }
 
-function sendReplayAction(action, data) {
+function sendReplayAction(action, data = null) {
     if (!replayWs) {
         return;
     }
@@ -201,5 +229,82 @@ function sendReplayState() {
 
 
 
+///////////////////////////////////////////
+///////////// Atem Client /////////////////
+///////////////////////////////////////////
+
+
+function connectAtem() {
+    atem.on('info', (log) => {
+        console.log('[Atem] Info:', log);
+    });
+
+    atem.on('error', (log) => {
+        console.error('[Atem] Error:', log);
+    });
+
+    console.log("Connecting to Atem...");
+    atem.connect('10.1.2.177');
+
+    atem.on('connected', () => {
+        console.log("Connected to Atem!");
+        state.connections.atem = true;
+        sendState('connection');
+    });
+
+    atem.on('disconnected', () => {
+        console.log('Lost connection to Atem, reconnecting in 1 Second');
+        state.connections.atem = false;
+        sendState('connection');
+        setTimeout(() => {
+            connectAtem();
+        }, 1000);
+    });
+
+    atem.on('stateChanged', (atemState, change) => {
+        if (!change.includes('video.ME.0.programInput') && !change.includes('video.ME.0.previewInput')) {
+            return;
+        }
+        const {programInput, previewInput} = atemState.video.mixEffects[0];
+        
+        state.atem = {
+            program: programInput,
+            preview: previewInput
+        };
+
+        sendState('atem');
+    });
+}
+///////////////////////////////////////////
+/////////// CasparCG Client ///////////////
+///////////////////////////////////////////
+
+
+
+function connectCasparCG() {
+    console.log("Connecting to CasparCG...");
+    casparCG = new CasparCG('10.1.2.50');
+    casparCG.autoReconnect = true;
+    casparCG.autoReconnectAttempts = 999999999999;
+    casparCG.autoReconnectInterval = 1000;
+    casparCG.onConnected = casparCG.onDisconnected = () => {
+        console.log('Connected to CasparCG!')
+        state.connections.casparCG = true;
+        sendState('connection');
+    };
+
+    casparCG.onLog = (log) => {
+        console.log('[CasparCG] Log:', log);
+    };
+
+    casparCG.onDisconnected = () => {
+        console.log('Lost connection to CasparCG, reconnecting in 1 Second');
+        state.connections.casparCG = false;
+        sendState('connection');
+    };
+}
+
 setState();
 connectReplay();
+connectAtem();
+connectCasparCG();

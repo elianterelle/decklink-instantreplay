@@ -1,6 +1,7 @@
 const WebSocket = require('ws');
-const { bufferSize } = require('./config');
+const { bufferSize } = require('../config');
 const Playback = require('./playback');
+const Capture = require('./capture');
 
 const inputs = [0, 1];
 
@@ -45,11 +46,15 @@ wss.on('connection', ws => {
         playback.setSlowmotion(slowmotion);
         playback.setInput(input);
         playback.setPause(pause);
+        console.log(data);
         break;
       
       case 'changePlaybackOffset':
         playback.setOffset(playback.getOffset() + data);
         break;
+
+      case 'resetPlaybackOffset':
+        playback.setOffset(1);
     }
   });
 });
@@ -63,11 +68,15 @@ function sendToAll(data) {
 }
 
 function pointerStateChange() {
+  const offset = playback.getOffset();
+  const pointer = playback.getPointer();
+  const position = (bufferSize + pointer - offset) % bufferSize;
   const pointerState = {
     captures: captures.map(capture => capture.getPointer()),
     playback: {
-      offset: playback.getOffset(),
-      pointer: playback.getPointer()
+      offset,
+      pointer,
+      position
     },
     bufferSize: bufferSize
   };

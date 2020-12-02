@@ -3,6 +3,7 @@
         <style>
             :root {
                 --background: #121212;
+                --backgroundContrast: #262626;
                 --success: #28b528;
                 --failure: #b52828;
             }
@@ -36,7 +37,7 @@
 
             .header {
                 display: flex;
-                border-bottom: 1px solid #262626;
+                border-bottom: 1px solid var(--backgroundContrast);
             }
 
             .modules {
@@ -46,22 +47,30 @@
             }
 
             .modules > div {
-                padding: 2em;
                 flex: 1;
-                border: 1px solid #262626;
+                border: 1px solid var(--backgroundContrast);
                 max-width: 40vh;
                 min-width: 25vh;
+            }
+
+            .modules .content, .playback {
+                padding: 2em;
             }
 
             .modules .capture.active {
                 border: 1px solid var(--success);
             }
 
-            .modules .playback.active {
+            .modules .playback.live {
                 border: 1px solid var(--failure);
             }
 
-
+            .modules .capture .label {
+                padding: 0.4em;
+                text-align: center;
+                font-size: 2em;
+                border-bottom: 1px solid var(--backgroundContrast);
+            }
 
             .recordgraph {
                 background:  #555;
@@ -90,6 +99,7 @@
                 top: calc(50% - 5px);
                 left: 0px;
                 right: 50%;
+                transform-origin: right;
             }
 
             .playbackPointer {
@@ -116,10 +126,10 @@
             }
 
             .playback .info {
-                font-size: 3em;
+                font-size: 2em;
             }
 
-            .playback .info #playbackSpeed, .playback .info #playbackPosition {
+            .playback .info #playbackSpeed, .playback .info #playbackPosition, .playback .info #playbackPaused {
                 float: right;
             }
 
@@ -133,7 +143,7 @@
         </div>
 
         <div class="modules">
-            <div class="playback">
+            <div class="playback" id="playbackFrame">
                 <div class="info">Speed: <span id="playbackSpeed">0.5</span></div>
                 <div class="info">Position: <span id="playbackPosition">-1 Sek</span></div>
                 <div class="info">Pausiert: <span id="playbackPaused">Nein</span></div>
@@ -147,21 +157,26 @@
                     <button onmousedown="backwardDown()" onmouseup="forwardBackwardUp()"><br>&lt;--<br></button>
                     <button onmousedown="forwardDown()" onmouseup="forwardBackwardUp()"><br>--&gt;<br></button>
                 </div>
+                <button onclick="cut()">Cut</button>
             </div>
 
             <div class="capture" id="capture0frame">
                 <div class="label" id="capture0label"></div>
-                <div class="recordgraph">
-                    <div class="pointer playbackPointer" id="capture0playback"></div>
-                    <div class="pointer capturePointer" id="capture0capture"></div>
+                <div class="content">
+                    <div class="recordgraph">
+                        <div class="pointer playbackPointer" id="capture0playback"></div>
+                        <div class="pointer capturePointer" id="capture0capture"></div>
+                    </div>
                 </div>
             </div>
 
             <div class="capture" id="capture1frame">
                 <div class="label" id="capture1label"></div>
-                <div class="recordgraph">
-                    <div class="pointer playbackPointer" id="capture1playback"></div>
-                    <div class="pointer capturePointer" id="capture1capture"></div>
+                <div class="content">
+                    <div class="recordgraph">
+                        <div class="pointer playbackPointer" id="capture1playback"></div>
+                        <div class="pointer capturePointer" id="capture1capture"></div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -170,9 +185,10 @@
     <script>
         const elements = {
             wsstate: document.getElementById('wsstate'),
-            speed: document.getElementById('plabackSpeed'),
-            position: document.getElementById('plabackPosition'),
+            speed: document.getElementById('playbackSpeed'),
+            position: document.getElementById('playbackPosition'),
             paused: document.getElementById('playbackPaused'),
+            playbackFrame: document.getElementById('playbackFrame'),
             capturePointers: [
                 document.getElementById('capture0capture'),
                 document.getElementById('capture1capture')
@@ -193,7 +209,7 @@
 
         function openWebsocket() {
             console.log('Connecting Websocket...');
-            ws = new WebSocket('ws://localhost:9000');
+            ws = new WebSocket('ws://10.1.2.175:9000');
 
             ws.onopen = () => {
                 wsstate = document.getElementById('wsstate');
@@ -203,13 +219,13 @@
             };
 
             ws.onmessage = message => {
-                console.log('Received Message', message);
+                // console.log('Received Message', message);
                 
-                const { type, data } = JSON.parse(message.data);
+                const { type, state, change } = JSON.parse(message.data);
 
                 switch (type) {
                     case 'state':
-                    drawPointers(data.capture, data.playback, data.buffersize);
+                    applyState(state, change);
                 }
             };
 
@@ -226,13 +242,13 @@
             const bufferSize = state.replay.pointers.bufferSize;
 
             state.replay.pointers.captures.forEach((value, index) => {
-                elements.capturePointers[index].style.transform = `rotate(${value/bufferSize*360}deg) translateX(25px)`;
+                elements.capturePointers[index].style.transform = `rotate(${value/bufferSize*360}deg)`;
             });
 
-            const playbackPosition = state.replay.pointers.playback;
+            const playbackPosition = state.replay.pointers.playback.position;
 
             elements.playbackPointers.forEach((element) => {
-                element.style.transform = `rotate(${playbackPosition/bufferSize*360}deg) translateX(25px)`;
+                element.style.transform = `rotate(${playbackPosition/bufferSize*360}deg)`;
             });
 
             const capturePosition = state.replay.pointers.captures[state.replay.state.input];
@@ -242,8 +258,9 @@
                 distance = capturePosition - (playbackPosition - bufferSize);
             }
 
+
             const seconds = Math.round((distance / state.settings.fps) * 100) / 100;
-            elements.position.innerText = `${seconds} Sekunden`;
+            elements.position.innerText = `${seconds.toFixed(2)} Sek.`;
             
             if (change == 'replay.pointers') {
                 return;
@@ -271,6 +288,14 @@
                     label.innerText = state.settings.labels.inputs[index];
                 });
             }
+
+            if (isAffected(change, 'atem')) {
+                if (state.atem.program == state.settings.replayAtemInput) {
+                    elements.playbackFrame.classList.add('live');
+                } else {
+                    elements.playbackFrame.classList.remove('live');
+                }                
+            }
         }
 
         function isAffected(change, check) {
@@ -281,7 +306,7 @@
             const changeParts = change.split('.');
             const checkParts = check.split('.');
 
-            for (let i = 0; i < min(changeParts.length, checkParts.length); i++) {
+            for (let i = 0; i < Math.min(changeParts.length, checkParts.length); i++) {
                 if (changeParts[i] != checkParts[i]) {
                     return false;
                 }
@@ -294,14 +319,18 @@
 
         async function backwardDown() {
             interval = setInterval(() => {
-                sendAction('changePlaybackPointer', -10);
+                sendAction('changePlaybackOffset', 10);
             }, 50)
         }
 
         async function forwardDown() {
             interval = setInterval(() => {
-                sendAction('changePlaybackPointer', 10);
+                sendAction('changePlaybackOffset', -10);
             }, 50)
+        }
+
+        function cut() {
+            sendAction('cutWithStinger');
         }
 
         async function forwardBackwardUp() {
