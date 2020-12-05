@@ -16,10 +16,10 @@ let lastButtonValues = [];
 function init() {
     parser.on('data', data =>{
         const values = data.split(',');
-        const [encoderValueRaw, sliderValueRaw] = values.slice(5);
-        const buttonValues = values.slice(0, 4).map(value => value == 1);
-        let encoderValue = parseInt(encoderValueRaw)*(-1);
-        let sliderValue = parseInt(sliderValueRaw.replace('\r', ''));
+        const [encoderValueRaw, sliderValueRaw] = values.slice(7);
+        const buttonValues = values.slice(0, 7).map(value => value == 1);
+        let encoderValue = parseInt(encoderValueRaw);
+        let sliderValue = 100 - parseInt(sliderValueRaw.replace('\r', ''));
 
         if (encoderValue >= -1 && encoderValue <= 1) {
             encoderValue = 0;
@@ -54,14 +54,29 @@ function init() {
             sendAction('prepareReplay', buttonValues[1]);
         }
 
-        // Cut with Stinger
+        // Reset
         if (lastButtonValues[2] !== buttonValues[2] && buttonValues[2]) {
-            sendAction('cutWithStinger', buttonValues[2]);
+            sendAction('resetReplay', buttonValues[2]);
         }
 
-        // Reset
+        // Cut with Stinger
         if (lastButtonValues[3] !== buttonValues[3] && buttonValues[3]) {
-            sendAction('resetReplay', buttonValues[3]);
+            sendAction('cutWithStinger', buttonValues[3]);
+        }
+
+        // Input 0
+        if (lastButtonValues[4] !== buttonValues[4] && buttonValues[4]) {
+            sendAction('setInput', 0);
+        }
+
+        // Input 1
+        if (lastButtonValues[5] !== buttonValues[5] && buttonValues[5]) {
+            sendAction('setInput', 1);
+        }
+
+        // Input 2
+        if (lastButtonValues[6] !== buttonValues[6] && buttonValues[6]) {
+            sendAction('setInput', 2);
         }
 
         lastEncoderValue = encoderValue;

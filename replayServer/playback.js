@@ -60,7 +60,6 @@ class Playback {
 
         this.playbackPointer = (this.playbackPointer + 1) % config.bufferSize;
 
-        console.log(this.playbackPointer);
         this.playbackIndex++;
     }
 

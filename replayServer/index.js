@@ -54,7 +54,7 @@ wss.on('connection', ws => {
         break;
 
       case 'resetPlaybackOffset':
-        playback.setOffset(1);
+        playback.setOffset(2);
     }
   });
 });

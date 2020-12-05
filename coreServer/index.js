@@ -122,7 +122,11 @@ wss.on('connection', ws => {
                 break;
 
             case 'setInput':
-                state.replay.input = data;
+                if (!state.settings.inputs[data]) {
+                    return;
+                }
+
+                state.replay.state.input = data;
                 sendReplayState();
                 sendState('replay.state.input');
                 break;
