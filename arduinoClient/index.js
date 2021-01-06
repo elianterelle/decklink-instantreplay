@@ -1,21 +1,38 @@
+'use strict';
+
 const SerialPort = require('serialport');
 const Readline = require('@serialport/parser-readline');
 const WebSocket = require('ws');
-
-const port = new SerialPort('COM3', { baudRate: 9600 });
-const parser = port.pipe(new Readline({ delimiter: '\n' }));
-
-port.on("open", () => {
-  console.log('serial port open');
-});
 
 let lastEncoderValue = 0;
 let lastSliderValue = 0;
 let lastButtonValues = [];
 
-function init() {
+function connectArduino(ports, index = 0) {
+    const port = new SerialPort(ports[index % ports.length], { baudRate: 9600 });
+    const parser = port.pipe(new Readline({ delimiter: '\n' }));
+    
+    port.on("open", () => {
+      console.log('serial port open');
+    });
+    
+    port.on("close", () => {
+        console.log('Lost connection to Arduino Controller, reconnecting in 1 Second');
+        setTimeout(() => connectArduino(), 1000);
+    });
+
+    port.on("error", (e) => {
+        console.log('Error while connecting to Arduino, reconnecting in 1 Second',e);
+        setTimeout(() => connectArduino(ports, (index + 1) % ports.length), 1000);
+    });
+
     parser.on('data', data =>{
         const values = data.split(',');
+
+        if (values.length !== 9) {
+            return;
+        }
+
         const [encoderValueRaw, sliderValueRaw] = values.slice(7);
         const buttonValues = values.slice(0, 7).map(value => value == 1);
         let encoderValue = parseInt(encoderValueRaw);
@@ -94,10 +111,12 @@ function init() {
 
 let ws = null;
 
-function connect() {
+const ports = ['/dev/ttyACM0', '/dev/ttyACM1']
+
+function connectWs() {
     ws = new WebSocket('ws://localhost:9000');
     ws.on('open', () => {
-        init();
+        connectArduino(ports);
     });
     
     ws.on('message', () => {});
@@ -107,7 +126,7 @@ function connect() {
     ws.on('close', () => {
         console.log('Lost connection to Core Server, reconnecting in 1 Second')
         setTimeout(() => {
-            connect();
+            connectWs();
         }, 1000);
     });
 }
@@ -124,4 +143,4 @@ function sendAction(action, data) {
     }));
 }
 
-connect();
+connectWs();

@@ -1,0 +1,15 @@
+[Unit]
+Description=WebClient for Instant Replay
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Environment=TEST=test
+Type=simple
+User=instantreplay
+ExecStart=/usr/bin/node /home/instantreplay/decklink-instantreplay/webClient/index.js
+Restart=always
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target

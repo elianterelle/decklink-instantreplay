@@ -11,7 +11,7 @@ class Capture {
         this.frameCallback = frameCallback;
         macadam.capture({
             deviceIndex: input,
-            displayMode: config.videoFormat,
+            displayMode: macadam[config.videoFormat],
             pixelFormat: macadam.bmdFormat8BitYUV,
         }).then(capture => {
             this.capture = capture;

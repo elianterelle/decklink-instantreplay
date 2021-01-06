@@ -19,7 +19,7 @@ class Playback {
     async init(captures) {
         this.playback  = await macadam.playback({
             deviceIndex: this.playbackOutput,
-            displayMode: config.videoFormat,
+            displayMode: macadam[config.videoFormat],
             pixelFormat: macadam.bmdFormat8BitYUV
         });
 
@@ -52,7 +52,12 @@ class Playback {
             frame = new Uint8ClampedArray(1080*1920*2);
         }
 
-        await this.playback.displayFrame(frame);
+        try {
+            await this.playback.displayFrame(frame);
+        } catch {
+            console.log('Playback Failed');
+            process.exit(1);
+        }
 
         if (this.playbackPause) {
             this.playbackOffset++;

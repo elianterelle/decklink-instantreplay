@@ -23,15 +23,25 @@
                 color: #fff;
             }
 
-            #wsstate {
+            #casparcgconnection {
+                margin-left: auto;
+            }
+
+            .connectionState {
                 padding: 0.6em 1em;
                 background: var(--failure);
                 float: right;
                 color: white;
-                margin-left: auto;
             }
 
-            #wsstate.connected {
+            .header .settings {
+                padding: 0.6em 1em;
+                background: var(--backgroundContrast);
+                float: right;
+                color: white;
+            }
+
+            .connectionState.connected {
                 background: var(--success);
             }
 
@@ -116,13 +126,37 @@
             }
 
             .playback .controls {
-                display: flex;
-                flex: 1;
+                margin: 20px -20px;
             }
 
-            .playback .controls .slider {
-                width: 2em;
-                background: #ddd;
+            .playback .controls .buttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr;
+                height: 80px;
+            }
+
+            .playback .controls .slowmotionbuttons {
+                display: grid;
+                grid-template-columns: 1fr 1fr 1fr 1fr;
+                height: 80px;
+            }
+
+            .playback .controls .buttons button {
+                margin: 2px;
+            }
+
+            .playback .controls .slowmotionbuttons button {
+                margin: 2px;
+            }
+
+            .playback .controls .position {
+                display: flex;
+            }
+
+            .playback .controls .position button {
+                flex: 1;
+                margin: 2px;
+                line-height: 2em;
             }
 
             .playback .info {
@@ -133,13 +167,53 @@
                 float: right;
             }
 
+            .modalbackdrop {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                background: rgba(0, 0, 0, 0.3);
+                display: none;
+                justify-content: center;
+                align-items: center;
+            }
 
+            .modal {
+                background: rgb(23, 23, 23);
+                border: 2px solid var(--backgroundContrast);
+                border-radius: 20px;
+                height: min-content;
+                padding: 80px;
+            }
+
+            .modal input, .modal label {
+                margin: 1em;
+            }
+
+            .modal .actions {
+                display: flex;
+            }
+
+            .modal .actions button {
+                flex: 1;
+                margin: 1em;
+            }
+
+
+            .modalbackdrop.visible {
+                display: flex;
+            }
         </style>
     </head>
 
     <body>
         <div class="header">
-            <div id="wsstate">Disconnected</div>
+            <div class="settings" onclick="openSettings()">Settings</div>
+            <div class="connectionState" id="casparcgconnection">CasparCG: Disconnected</div>
+            <div class="connectionState" id="atemconnection">Atem: Disconnected</div>
+            <div class="connectionState" id="replayconnection">Replay: Disconnected</div>
+            <div class="connectionState" id="wsconnection">Disconnected</div>
         </div>
 
         <div class="modules">
@@ -148,16 +222,30 @@
                 <div class="info">Position: <span id="playbackPosition">-1 Sek</span></div>
                 <div class="info">Pausiert: <span id="playbackPaused">Nein</span></div>
 
-                <div class="controls">
-                    <!--<div class="slider"><div id="speedSliderPointer"></div></div>-->
-                    
-                </div>
+                
 
-                <div style="display: flex;">
-                    <button onmousedown="backwardDown()" onmouseup="forwardBackwardUp()"><br>&lt;--<br></button>
-                    <button onmousedown="forwardDown()" onmouseup="forwardBackwardUp()"><br>--&gt;<br></button>
+                <div class="controls">
+                    <div class="slowmotionbuttons">
+                        <button onclick="sendAction('setSlowmotion', 0)">1x</button>
+                        <button onclick="sendAction('setSlowmotion', 1)">0.75x</button>
+                        <button onclick="sendAction('setSlowmotion', 2)">0.5x</button>
+                        <button onclick="sendAction('setSlowmotion', 3)">0.25x</button>
+                    </div>
+
+                    <div class="position">
+                        <button onmousedown="backwardDown()" onmouseup="forwardBackwardUp()">&lt;--</button>
+                        <button onmousedown="forwardDown()" onmouseup="forwardBackwardUp()">--&gt;</button>
+                    </div>
+
+                    <div class="buttons">
+                        <button style="font-size: 0.8em" onclick="sendAction('prepareReplay')">Preview</button>
+                        <button onclick="sendAction('resetReplay')">Reset</button>
+                        <button onclick="sendAction('cutWithStinger')">Cut</button>
+                        <button onclick="sendAction('setInput', 0)">1</button>
+                        <button onclick="sendAction('setInput', 1)">2</button>
+                        <button onclick="sendAction('setInput', 2)">3</button>
+                    </div>
                 </div>
-                <button onclick="cut()">Cut</button>
             </div>
 
             <div class="capture" id="capture0frame">
@@ -180,11 +268,45 @@
                 </div>
             </div>
         </div>
+
+        <div class="modalbackdrop" id="settings" onclick="//cancelSettings()">
+            <div class="modal">
+                <table>
+                    <tr>
+                        <td><label>CasparCG</label></td>
+                        <td><input id="casparcgsetting" type="text" placeholder="10.1.2.3"></td>
+                    </tr>
+
+                    <tr>
+                        <td><label>CasparCG Stinger File</label></td>
+                        <td><input id="stingerfilesetting" type="text" placeholder="stinger"></td>
+                    </tr>
+
+                    <tr>
+                        <td><label>Atem</label></td>
+                        <td><input id="atemsetting" type="text" placeholder="10.1.2.3"></td>
+                    </tr>
+                    <tr>
+                        <td><label>Atem Replay Input</label></td>
+                        <td><input id="replayateminputsetting" type="number" placeholder="2"></td>
+                    </tr>
+                </table>
+
+                <div class="actions">
+                    <button class="cancel" onclick="closeSettings()">Cancel</button>
+                    <button class="save" onclick="saveSettings()">Apply</button>
+                    <button class="save" onclick="closeSettings(true)">Ok</button>
+                </div>
+            </div>
+        </div>
     </body>
 
     <script>
         const elements = {
-            wsstate: document.getElementById('wsstate'),
+            wsconnection: document.getElementById('wsconnection'),
+            atemconnection: document.getElementById('atemconnection'),
+            replayconnection: document.getElementById('replayconnection'),
+            casparcgconnection: document.getElementById('casparcgconnection'),
             speed: document.getElementById('playbackSpeed'),
             position: document.getElementById('playbackPosition'),
             paused: document.getElementById('playbackPaused'),
@@ -204,17 +326,26 @@
             captureLabels: [
                 document.getElementById('capture0label'),
                 document.getElementById('capture1label')
-            ]
+            ],
+            settings: {
+                modal: document.getElementById('settings'),
+                buffersize: document.getElementById('buffersizesetting'),
+                casparcg: document.getElementById('casparcgsetting'),
+                atem: document.getElementById('atemsetting'),
+                replayAtemInput: document.getElementById('replayateminputsetting'),
+                stingerFile: document.getElementById('stingerfilesetting')
+            }
         };
+
+        window.state = {};
 
         function openWebsocket() {
             console.log('Connecting Websocket...');
-            ws = new WebSocket('ws://10.1.2.175:9000');
+            ws = new WebSocket(`ws://${window.location.hostname}:9000`);
 
             ws.onopen = () => {
-                wsstate = document.getElementById('wsstate');
-                wsstate.innerText = 'Connected';
-                wsstate.classList.add('connected');
+                elements.wsconnection.innerText = 'Connected';
+                elements.wsconnection.classList.add('connected');
                 console.log('Connected!')
             };
 
@@ -225,14 +356,14 @@
 
                 switch (type) {
                     case 'state':
+                    window.state = state;
                     applyState(state, change);
                 }
             };
 
             ws.onclose = () => {
-                wsstate = document.getElementById('wsstate');
-                wsstate.innerText = 'Disconnected';
-                wsstate.classList.remove('connected');
+                elements.wsconnection.innerText = 'Disconnected';
+                elements.wsconnection.classList.remove('connected');
                 console.log('Websocket closed. Attempting to reconnect in 1 second')
                 setTimeout(() => this.openWebsocket(), 1000);
             };
@@ -266,6 +397,8 @@
                 return;
             }
 
+            console.log(change);
+
             if (isAffected(change, 'replay')) {
                 const speed = [
                     '1x', '0.75x', '0.5x', '0.25x'
@@ -287,6 +420,11 @@
                 elements.captureLabels.forEach((label, index) => {
                     label.innerText = state.settings.labels.inputs[index];
                 });
+
+                elements.settings.casparcg.value = state.settings.casparCG;
+                elements.settings.stingerFile.value = state.settings.stingerFile;
+                elements.settings.atem.value = state.settings.atem;
+                elements.settings.replayAtemInput.value = state.settings.replayAtemInput;
             }
 
             if (isAffected(change, 'atem')) {
@@ -295,6 +433,31 @@
                 } else {
                     elements.playbackFrame.classList.remove('live');
                 }                
+            }
+
+            if (isAffected(change, 'connections')) {
+                console.log("Connections Affected", state.connections.casparCG);
+
+                elements.atemconnection.innerText = state.connections.atem ? 'Atem: Connected' : 'Atem: Disconnected';
+                if (state.connections.atem) {
+                    elements.atemconnection.classList.add('connected');
+                } else {
+                    elements.atemconnection.classList.remove('connected');
+                }
+
+                elements.replayconnection.innerText = state.connections.replay ? 'Replay: Connected' : 'Replay: Disconnected';
+                if (state.connections.replay) {
+                    elements.replayconnection.classList.add('connected');
+                } else {
+                    elements.replayconnection.classList.remove('connected');
+                }
+
+                elements.casparcgconnection.innerText = state.connections.casparCG ? 'CasparCG: Connected' : 'CasparCG: Disconnected';
+                if (state.connections.casparCG) {
+                    elements.casparcgconnection.classList.add('connected');
+                } else {
+                    elements.casparcgconnection.classList.remove('connected');
+                }
             }
         }
 
@@ -342,6 +505,27 @@
                 action,
                 data
             }));
+        }
+
+        function openSettings() {
+            elements.settings.modal.classList.add('visible');
+        }
+
+        function closeSettings(save = false) {
+            if (save) {
+                saveSettings();
+            }
+
+            elements.settings.modal.classList.remove('visible');
+        }
+
+        function saveSettings() {
+            sendAction('updateSettings', {
+                casparCG: elements.settings.casparcg.value,
+                atem: elements.settings.atem.value,
+                replayAtemInput: parseInt(elements.settings.replayAtemInput.value),
+                stingerFile: elements.settings.stingerFile.value
+            });
         }
 
         openWebsocket();
