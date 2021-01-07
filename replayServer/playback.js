@@ -77,7 +77,7 @@ class Playback {
     }
 
     setOffset(offset) {
-        this.playbackOffset = offset;
+        this.playbackOffset = offset % config.bufferSize;
     }
 
     getInput() {
