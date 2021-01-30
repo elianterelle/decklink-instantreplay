@@ -1,0 +1,60 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="canvas"></canvas>
+
+        <script>
+            const canvas = document.querySelector('#canvas');
+            const context = canvas.getContext('2d');
+
+            canvas.width = 1920;
+            canvas.height = 1080;
+
+            let currentFrame = 0;
+            let drawInterval = null;
+
+            const images = [];
+
+            let ws = null;
+
+            for (let i = 0; i < 18; i++) {
+                const image = new Image();
+                image.src = `img/181109_VBL_Slomo_Trenner${('0' + i).slice(-2)}.png`;
+                images.push(image);
+            }
+
+            function playStinger() {
+                drawInterval = setInterval(() => {
+                    context.clearRect(0, 0, 1920, 1080);
+                    context.drawImage(images[currentFrame], 0, 0, 1920, 1080);
+                    currentFrame++;
+
+                    if (currentFrame == 18) {
+                        currentFrame = 0;
+                        clearInterval(drawInterval);
+                    }
+                }, 1000/25);
+            }
+
+            function openWebsocket() {
+                console.log('Connecting Stinger Websocket...');
+                ws = new WebSocket(`ws://${window.location.hostname}:9002`);
+
+                ws.onmessage = message => {
+                    switch (message) {
+                        case 'playStinger':
+                            playStinger();
+                            break;
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log('Websocket closed. Attempting to reconnect in 1 second')
+                    setTimeout(() => openWebsocket(), 1000);
+                };
+            }
+
+            openWebsocket();
+        </script>
+    </body>
+</html>
