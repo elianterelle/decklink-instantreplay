@@ -1,0 +1,41 @@
+<html>
+    <head></head>
+    <body>
+        <canvas id="canvas"></canvas>
+
+        <script>
+            const canvas = document.querySelector('#canvas');
+            const context = canvas.getContext('2d');
+
+            canvas.width = 1920;
+            canvas.height = 1080;
+
+            let currentFrame = 0;
+            let drawInterval = null;
+
+            const images = [];
+
+            for (let i = 0; i < 18; i++) {
+                const image = new Image();
+                image.src = `img/181109_VBL_Slomo_Trenner${('0' + i).slice(-2)}.png`;
+                images.push(image);
+            }
+
+            function showStinger() {
+                drawInterval = setInterval(() => {
+                    context.clearRect(0, 0, 1920, 1080);
+                    context.drawImage(images[currentFrame], 0, 0, 1920, 1080);
+                    currentFrame++;
+
+                    if (currentFrame == 18) {
+                        currentFrame = 0;
+                        clearInterval(drawInterval);
+                        setTimeout(() => showStinger(), 1000);
+                    }
+                }, 1000/25);
+            }
+
+            showStinger();
+        </script>
+    </body>
+</html>
