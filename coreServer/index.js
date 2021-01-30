@@ -44,7 +44,7 @@ function setState() {
             },
             fps: 50,
             stingerFile: 'stinger',
-            replayAtemInput: 2,
+            replayAtemInput: 8,
             inputs: [true, true],
             atem: '10.16.12.41',
             casparCG: '10.16.12.21'
@@ -105,8 +105,13 @@ wss.on('connection', ws => {
 
             case 'cutWithStinger':
                 casparCG.play(1, 20, 'stinger').then((data) => {
-                    setTimeout(() => {
-                        atem.cut();
+                    setTimeout(async () => {
+                        const changePreview = state.atem.program == state.settings.replayAtemInput;
+                        await atem.cut();
+                        if (changePreview) {
+                            atem.changePreviewInput(5);
+                            sendReplayAction('resetPlaybackOffset');
+                        }
                     }, 1200);
                 });
                 break;
