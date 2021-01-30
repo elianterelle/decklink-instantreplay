@@ -15,13 +15,15 @@
 
             const images = [];
 
+            let ws = null;
+
             for (let i = 0; i < 18; i++) {
                 const image = new Image();
                 image.src = `img/181109_VBL_Slomo_Trenner${('0' + i).slice(-2)}.png`;
                 images.push(image);
             }
 
-            function showStinger() {
+            function playStinger() {
                 drawInterval = setInterval(() => {
                     context.clearRect(0, 0, 1920, 1080);
                     context.drawImage(images[currentFrame], 0, 0, 1920, 1080);
@@ -30,12 +32,29 @@
                     if (currentFrame == 18) {
                         currentFrame = 0;
                         clearInterval(drawInterval);
-                        setTimeout(() => showStinger(), 1000);
                     }
                 }, 1000/25);
             }
 
-            showStinger();
+            function openWebsocket() {
+                console.log('Connecting Stinger Websocket...');
+                ws = new WebSocket(`ws://${window.location.hostname}:9002`);
+
+                ws.onmessage = message => {
+                    switch (message) {
+                        case 'playStinger':
+                            playStinger();
+                            break;
+                    }
+                };
+
+                ws.onclose = () => {
+                    console.log('Websocket closed. Attempting to reconnect in 1 second')
+                    setTimeout(() => openWebsocket(), 1000);
+                };
+            }
+
+            openWebsocket();
         </script>
     </body>
 </html>
