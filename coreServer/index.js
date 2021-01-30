@@ -2,6 +2,7 @@
     Ports:
         9000: Core Server Websocket
         9001: Video Server Websocket
+        9002: Stinger Websocket
 */
 
 const WebSocket = require('ws');
@@ -47,19 +48,21 @@ function setState() {
             replayAtemInput: 2,
             inputs: [true, true],
             atem: '10.16.12.41',
-            casparCG: '10.16.12.21'
+            casparCG: '10.16.12.21',
+            stingerPlayer: 'html' // 'html' | 'casparCG'
         },
         connections: {
             replay: false,
             casparCG: false,
-            atem: false
+            atem: false,
+            stingerClients: 0
         }
     };
 }
 
 
 ///////////////////////////////////////////
-/////////// Websocket Server //////////////
+//////// Client Websocket Server //////////
 ///////////////////////////////////////////
 
 // Start Websocket Server
@@ -104,11 +107,22 @@ wss.on('connection', ws => {
                 break;
 
             case 'cutWithStinger':
-                casparCG.play(1, 20, 'stinger').then((data) => {
-                    setTimeout(() => {
-                        atem.cut();
-                    }, 1200);
-                });
+                switch (state.settings.stingerPlayer) {
+                    case 'casparCG':
+                        casparCG.play(1, 20, 'stinger').then((data) => {
+                            setTimeout(() => {
+                                atem.cut();
+                            }, 1200);
+                        });
+                        break;
+
+                    case 'html':
+                        playHtmlStinger();
+                        setTimeout(() => {
+                            atem.cut();
+                        }, (1000/25) * 9); // Wait 9 Frames
+                        break;
+                }
                 break;
 
             case 'prepareReplay':
@@ -160,6 +174,34 @@ function sendState(change = '*') {
     });
 }
 
+
+///////////////////////////////////////////
+//////// Stinger Websocket Server /////////
+///////////////////////////////////////////
+
+// Start Websocket Server
+const stingerWss = new WebSocket.Server({ port: 9002 });
+
+// On new Websocket Connection
+stingerWss.on('connection', () => {
+    console.log("Stinger Client Connected!");
+    state.connections.stingerClients = stingerWss.clients.length;
+    sendState();
+});
+
+stingerWss.on('close', () => {
+    console.log("Stinger Client Disconnected!");
+    state.connections.stingerClients = stingerWss.clients.length;
+    sendState();
+});
+
+function playHtmlStinger() {
+    stingerWss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send('playStinger');
+        }
+    });
+}
 
 
 ///////////////////////////////////////////
