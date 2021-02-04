@@ -1,0 +1,15 @@
+{
+  "name": "obsclient",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "obs-websocket-js": "^4.0.2",
+    "ws": "^7.4.3"
+  }
+}

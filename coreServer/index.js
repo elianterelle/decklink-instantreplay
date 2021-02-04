@@ -110,16 +110,32 @@ wss.on('connection', ws => {
                 switch (state.settings.stingerPlayer) {
                     case 'casparCG':
                         casparCG.play(1, 20, 'stinger').then((data) => {
-                            setTimeout(() => {
-                                atem.cut();
+                            setTimeout(async () => {
+                                const out = state.atem.program == state.settings.replayAtemInput;
+                                await atem.cut();
+                                if (out) {
+                                    atem.changePreviewInput(5);
+                                    sendReplayAction('resetPlaybackOffset');
+                                }
                             }, 1200);
                         });
                         break;
 
                     case 'html':
-                        playHtmlStinger();
-                        setTimeout(() => {
-                            atem.cut();
+                        const out = state.atem.program == state.settings.replayAtemInput;
+                        
+                        if (out) {
+                            playHtmlStingerOut();
+                        } else {
+                            playHtmlStingerIn();
+                        }
+                        
+                        setTimeout(async () => {
+                            await atem.cut();
+                            if (out) {
+                                atem.changePreviewInput(5);
+                                sendReplayAction('resetPlaybackOffset');
+                            }
                         }, (1000/25) * 9); // Wait 9 Frames
                         break;
                 }
@@ -195,14 +211,21 @@ stingerWss.on('close', () => {
     sendState();
 });
 
-function playHtmlStinger() {
+function playHtmlStingerIn() {
     stingerWss.clients.forEach(client => {
         if (client.readyState === WebSocket.OPEN) {
-            client.send('playStinger');
+            client.send('playStingerIn');
         }
     });
 }
 
+function playHtmlStingerOut() {
+    stingerWss.clients.forEach(client => {
+        if (client.readyState === WebSocket.OPEN) {
+            client.send('playStingerOut');
+        }
+    });
+}
 
 ///////////////////////////////////////////
 ///// Websocket Client (ReplayServer) /////
