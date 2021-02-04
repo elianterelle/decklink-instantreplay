@@ -42,7 +42,8 @@
 
                 ws.onmessage = message => {
                     switch (message) {
-                        case 'playStinger':
+                        case 'playStingerIn':
+                        case 'playStingerOut':
                             playStinger();
                             break;
                     }

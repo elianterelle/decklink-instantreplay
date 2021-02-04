@@ -48,14 +48,14 @@ class Playback {
         let frame = capture.frameBuffer[index];
 
         if (!frame) {
-            console.log('Missing Frame!')
+            console.log('Missing Frame')
             frame = new Uint8ClampedArray(1080*1920*2);
         }
 
         try {
             await this.playback.displayFrame(frame);
         } catch {
-            console.log('Playback Failed');
+            console.log('Frame Playback Failed');
             process.exit(1);
         }
 
