@@ -40,8 +40,8 @@
                 console.log('Connecting Stinger Websocket...');
                 ws = new WebSocket(`ws://${window.location.hostname}:9002`);
 
-                ws.onmessage = message => {
-                    switch (message) {
+                ws.onmessage = ({data}) => {
+                    switch (data) {
                         case 'playStingerIn':
                         case 'playStingerOut':
                             playStinger();
