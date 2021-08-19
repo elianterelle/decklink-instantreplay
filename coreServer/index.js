@@ -41,7 +41,7 @@ function setState() {
         casparCG: {},
         settings: {
             labels: {
-                inputs: ['Kamera 1', 'Kamera 2']
+                inputs: ['Camera 1', 'Camera 2']
             },
             fps: 50,
             stingerFile: 'stinger',
