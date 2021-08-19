@@ -33,10 +33,10 @@ class Playback {
 
         const capture = this.captures[this.playbackInput];
         let slowmoOffset = [
-            [0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 1, 0, 0, 0, 1],
-            [0, 1, 0, 1, 0, 1, 0, 1],
-            [0, 1, 1, 1, 0, 1, 1, 1]
+            [0, 0, 0, 0, 0, 0, 0, 0], // 100%
+            [0, 0, 0, 1, 0, 0, 0, 1], // 75%
+            [0, 1, 0, 1, 0, 1, 0, 1], // 50%
+            [0, 1, 1, 1, 0, 1, 1, 1]  // 25%
         ][this.slowmotion][this.playbackIndex % 8];
 
         if (!this.playbackPause) {

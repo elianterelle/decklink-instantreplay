@@ -24,7 +24,7 @@ class Capture {
             this.frameBuffer[this.frameBufferPointer] = Buffer.from(frame.video.data);
             this.frameBufferPointer = (this.frameBufferPointer+1) % config.bufferSize;
             process.nextTick(() => {
-            this.loop();
+                this.loop();
             });
             this.frameCallback();
         });

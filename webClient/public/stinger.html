@@ -24,6 +24,10 @@
             }
 
             function playStinger() {
+                if (drawInterval) {
+                    clearInterval(drawInterval);
+                }
+
                 drawInterval = setInterval(() => {
                     context.clearRect(0, 0, 1920, 1080);
                     context.drawImage(images[currentFrame], 0, 0, 1920, 1080);
@@ -32,6 +36,7 @@
                     if (currentFrame == 18) {
                         currentFrame = 0;
                         clearInterval(drawInterval);
+                        drawInterval = null;
                     }
                 }, 1000/25);
             }
