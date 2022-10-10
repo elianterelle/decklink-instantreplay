@@ -41,12 +41,12 @@ function setState() {
         casparCG: {},
         settings: {
             labels: {
-                inputs: ['Camera 1', 'Camera 2']
+                inputs: ['Camera 1', 'Camera 2', 'Camera 3']
             },
             fps: 50,
             stingerFile: 'stinger',
             replayAtemInput: 8,
-            inputs: [true, true],
+            inputs: [true, true, true],
             atem: '10.16.12.41',
             casparCG: '10.16.12.21',
             stingerPlayer: 'html' // 'html' | 'casparCG'
