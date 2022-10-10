@@ -9,7 +9,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "macadam": "git://github.com/rezonant/macadam.git#feat/color-conversion",
+    "macadam": "^2.0.18",
     "ws": "^7.4.0"
   }
 }
