@@ -5,7 +5,6 @@ class Playback {
     playback = null;
     playbackInput = 0;
     playbackOutput;
-    playbackOffset = 0;
     playbackPointer = 0;
     playbackIndex = 0;
     playbackPause = false;
@@ -40,10 +39,10 @@ class Playback {
         ][this.slowmotion][this.playbackIndex % 8];
 
         if (!this.playbackPause) {
-            this.playbackOffset = this.playbackOffset + slowmoOffset;
+            this.decreasePointer(slowmoOffset);
         }
 
-        const index = (config.bufferSize - this.playbackOffset + this.playbackPointer) % config.bufferSize;
+        const index = (config.bufferSize + this.playbackPointer) % config.bufferSize;
 
         let frame = capture.frameBuffer[index];
 
@@ -60,24 +59,33 @@ class Playback {
         }
 
         if (this.playbackPause) {
-            this.playbackOffset++;
+            this.decreasePointer();
         }
 
-        this.playbackPointer = (this.playbackPointer + 1) % config.bufferSize;
+        this.increasePointer();
 
         this.playbackIndex++;
+    }
+
+    increasePointer() {
+        this.playbackPointer = (this.playbackPointer + 1) % config.bufferSize;
+    }
+
+    decreasePointer(value = 1) {
+        this.playbackPointer = (config.bufferSize + (this.playbackPointer - value)) % config.bufferSize;
     }
 
     getPointer() {
         return this.playbackPointer;
     }
 
-    getOffset() {
-        return this.playbackOffset;
+    resetPointer() {
+        const capture = this.captures[this.playbackInput];
+        this.playbackPointer = (config.bufferSize + capture.frameBufferPointer - 1) % config.bufferSize;
     }
 
     setOffset(offset) {
-        this.playbackOffset = offset % config.bufferSize;
+        this.decreasePointer(offset);
     }
 
     getInput() {

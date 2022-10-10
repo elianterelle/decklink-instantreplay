@@ -3,7 +3,7 @@ const { bufferSize } = require('../config');
 const Playback = require('./playback');
 const Capture = require('./capture');
 
-const inputs = [0, 1];
+const inputs = [0, 1, 2];
 
 const captures = [];
 const playback = new Playback(3, () => {
@@ -50,11 +50,11 @@ wss.on('connection', ws => {
         break;
       
       case 'changePlaybackOffset':
-        playback.setOffset(playback.getOffset() + data);
+        playback.setOffset(data);
         break;
 
       case 'resetPlaybackOffset':
-        playback.setOffset(5);
+        playback.resetPointer();
     }
   });
 });
@@ -68,13 +68,11 @@ function sendToAll(data) {
 }
 
 function pointerStateChange() {
-  const offset = playback.getOffset();
   const pointer = playback.getPointer();
-  const position = (bufferSize + pointer - offset) % bufferSize;
+  const position = (bufferSize + pointer) % bufferSize;
   const pointerState = {
     captures: captures.map(capture => capture.getPointer()),
     playback: {
-      offset,
       pointer,
       position
     },
