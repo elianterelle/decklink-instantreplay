@@ -159,10 +159,6 @@
                 line-height: 2em;
             }
 
-            .playback .info {
-                font-size: 2em;
-            }
-
             .playback .info #playbackSpeed, .playback .info #playbackPosition, .playback .info #playbackPaused {
                 float: right;
             }
@@ -267,6 +263,16 @@
                     </div>
                 </div>
             </div>
+
+            <div class="capture" id="capture2frame">
+                <div class="label" id="capture2label"></div>
+                <div class="content">
+                    <div class="recordgraph">
+                        <div class="pointer playbackPointer" id="capture2playback"></div>
+                        <div class="pointer capturePointer" id="capture2capture"></div>
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="modalbackdrop" id="settings" onclick="//cancelSettings()">
@@ -313,19 +319,23 @@
             playbackFrame: document.getElementById('playbackFrame'),
             capturePointers: [
                 document.getElementById('capture0capture'),
-                document.getElementById('capture1capture')
+                document.getElementById('capture1capture'),
+                document.getElementById('capture2capture')
             ],
             playbackPointers: [
                 document.getElementById('capture0playback'),
-                document.getElementById('capture1playback')
+                document.getElementById('capture1playback'),
+                document.getElementById('capture2playback')
             ],
             captureFrames: [
                 document.getElementById('capture0frame'),
-                document.getElementById('capture1frame')
+                document.getElementById('capture1frame'),
+                document.getElementById('capture2frame')
             ],
             captureLabels: [
                 document.getElementById('capture0label'),
-                document.getElementById('capture1label')
+                document.getElementById('capture1label'),
+                document.getElementById('capture2label')
             ],
             settings: {
                 modal: document.getElementById('settings'),
@@ -405,7 +415,7 @@
                 ][state.replay.state.slowmotion];
 
                 elements.speed.innerText = speed;
-                elements.paused.innerText = state.replay.state.paused ? 'Ja' : 'Nein';
+                elements.paused.innerText = state.replay.state.pause ? 'Ja' : 'Nein';
 
                 elements.captureFrames.forEach((frame, index) => {
                     if (state.replay.state.input == index) {
@@ -481,12 +491,14 @@
         let interval = null;
 
         async function backwardDown() {
+            sendAction('setPause', true);
             interval = setInterval(() => {
                 sendAction('changePlaybackOffset', 10);
             }, 50)
         }
 
         async function forwardDown() {
+            sendAction('setPause', true);
             interval = setInterval(() => {
                 sendAction('changePlaybackOffset', -10);
             }, 50)
@@ -497,7 +509,9 @@
         }
 
         async function forwardBackwardUp() {
+            sendAction('setPause', false);
             clearInterval(interval);
+            interval = null;
         }
 
         function sendAction(action, data) {
@@ -528,6 +542,36 @@
             });
         }
 
+
+
         openWebsocket();
+
+        document.onkeydown = (event) => {
+            if (interval) return;
+
+            switch(event.code) {
+                case 'ArrowLeft':
+                    backwardDown();
+                    break;
+                case 'ArrowRight':
+                    forwardDown();
+                    break;
+                case 'Space':
+                    sendAction('setPause', true);
+                    break;
+            }
+        };
+
+        document.onkeyup = (event) => {
+            switch(event.code) {
+                case 'ArrowLeft':
+                case 'ArrowRight':
+                    forwardBackwardUp();
+                    break;
+                case 'Space':
+                    sendAction('setPause', false);
+                    break;
+            }
+        };
     </script>
 </html>
